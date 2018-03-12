@@ -124,7 +124,7 @@ class ThreadServer implements Runnable {
 			Float size = (float) (byteArray.length / (1024 * 1024));
 			DecimalFormat formatter = new DecimalFormat("#.00");
 
-			System.out.println("[Thread Server] uploadind : " + fileToUpload.getName() + " - Size: "
+			System.out.println("[Thread Server] uploading : " + fileToUpload.getName() + " - Size: "
 					+ formatter.format(size) + " MB");
 
 			BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
@@ -134,6 +134,8 @@ class ThreadServer implements Runnable {
 			this.outputStream.flush();
 
 			bufferedInputStream.close();
+			
+			System.out.println("[Thread Server] Finished!");
 		} 
 		else {
 			System.out.println("[Thread Server] File not found in directory!");
