@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
@@ -21,7 +22,16 @@ class ThreadServer extends Thread {
 
 	public static final String GET_FILE = "GetFile";
 	public static final String FILE_LIST = "FileList";
+	public static final String CLOSE_SESSION = "CloseSession";
+	
+	public static final String SEPARADOR_COMANDOS = ";;;";
 	public static final String SEPARADOR_ARCHIVOS = ":::";
+	
+	/**
+	 * estado de la sesion
+	 */
+	private boolean estado;
+	
 	/**
 	 * Socket asignado al thread
 	 */
@@ -59,6 +69,8 @@ class ThreadServer extends Thread {
 	 * @param directory
 	 */
 	public ThreadServer(Socket socket, File directory) throws Exception {
+		
+		this.estado = true;
 		this.connectionSocket = socket;
 		this.directory = directory;
 		this.directoryFiles = new ArrayList<>();
@@ -126,11 +138,35 @@ class ThreadServer extends Thread {
 			System.out.println("[Thread Server] File not found in directory!");
 			throw new Exception("[Thread Server] File not found in directory!");
 		}
-		
 	}
+	
 
 	public void run() {
-		
+		while (this.estado) {
+			try {
+				String[] comando = bufferedReader.readLine().split(SEPARADOR_COMANDOS);
+				
+				if (comando[0].equals(FILE_LIST)) {
+					listDirectoryFiles();
+				}
+				else if(comando[0].equals(GET_FILE)){
+					uploadFile(comando[1]);
+				}
+				else if(comando[0].equals(CLOSE_SESSION)){
+					this.estado = false;
+					printWriter.println("[Thread Server] Connection Concluded!");
+					this.bufferedReader.close();
+					this.printWriter.close();
+					this.outputStream.close();
+				}
+				
+			} 
+			catch (Exception e) {
+				System.out.println("[Thread Server] Exception Caught during Thread Execution!");
+				e.printStackTrace();
+			}
+			
+		}
 	}
 
 

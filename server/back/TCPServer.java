@@ -57,7 +57,8 @@ public class TCPServer {
 			
 			while (true) {
 				connectionSocket = serverSocket.accept();
-				new ThreadServer(connectionSocket, directory);
+				ThreadServer threadServer = new ThreadServer(connectionSocket, directory);
+				threadServer.start();
 			}
 		} 
 		catch (Exception e) {
