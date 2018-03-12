@@ -108,7 +108,7 @@ public class TCPServer {
 
 	public static void main(String[] args) {
 		try {
-			String directoryPath = (args.length >=1) ? args[0] : "";
+			String directoryPath = (args.length >=1) ? args[0] : "./data/serverFiles";
 			int corePoolSize = (args.length >=2) ? Integer.parseInt(args[1]) :  5;
 			int maximumPoolSize = (args.length >=3) ? Integer.parseInt(args[2]) :  10;
 			long keepAliveTime = (args.length >=4) ? Integer.parseInt(args[3]) :  60;
