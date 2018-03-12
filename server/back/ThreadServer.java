@@ -18,7 +18,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-class ThreadServer extends Thread {
+class ThreadServer implements Runnable {
 
 	public static final String GET_FILE = "GetFile";
 	public static final String FILE_LIST = "FileList";

@@ -3,6 +3,10 @@ package back;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class TCPServer {
 	
@@ -23,8 +27,34 @@ public class TCPServer {
 	 */
 	private Socket connectionSocket;
 	
-
-	public TCPServer(String directoryPath) throws Exception {
+	/**
+	 * Pool de Thread para el manejo de sockets
+	 */
+	private ThreadPoolExecutor threadPoolExecutor;
+	
+	private int corePoolSize;
+	
+	/**
+	 * Numero maximo de Threads
+	 */
+	private int maximumPoolSize;
+	
+	/**
+	 * 
+	 */
+	private long keepAliveTime;
+	
+	/**
+	 * 
+	 */
+	private LinkedBlockingQueue<Runnable>linkedBlockingQueue;
+	
+	/**
+	 * 
+	 * @param directoryPath
+	 * @throws Exception
+	 */
+	public TCPServer(String directoryPath, int corePoolSize, int maximumPoolSize, long keepAliveTime) throws Exception {
 		
 		try {
 			String exception = "";
@@ -42,6 +72,13 @@ public class TCPServer {
 				System.out.println(exception);
 				throw new Exception(exception);
 			}
+			
+			this.corePoolSize = corePoolSize;
+			this.maximumPoolSize = maximumPoolSize;
+			this.keepAliveTime = keepAliveTime;
+			
+			this.linkedBlockingQueue = new LinkedBlockingQueue<>();
+			this.threadPoolExecutor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, TimeUnit.SECONDS, linkedBlockingQueue);
 			this.serverSocket = new ServerSocket(LISTENING_PORT);
 		} 
 		catch (Exception e) {
@@ -57,20 +94,26 @@ public class TCPServer {
 			
 			while (true) {
 				connectionSocket = serverSocket.accept();
-				ThreadServer threadServer = new ThreadServer(connectionSocket, directory);
-				threadServer.start();
+				this.threadPoolExecutor.execute(new ThreadServer(connectionSocket, directory));
 			}
+			
 		} 
 		catch (Exception e) {
 			System.out.println("[Server Socket] Exception dring the listening face!");
 			System.out.println("[Server Socket] Error description:  " + e.getMessage());
+			threadPoolExecutor.shutdown();
 		}
 	}
 
 
 	public static void main(String[] args) {
 		try {
-			TCPServer tcpServer = new TCPServer(args[0]);
+			String directoryPath = (args.length >=1) ? args[0] : "";
+			int corePoolSize = (args.length >=2) ? Integer.parseInt(args[1]) :  5;
+			int maximumPoolSize = (args.length >=3) ? Integer.parseInt(args[2]) :  10;
+			long keepAliveTime = (args.length >=4) ? Integer.parseInt(args[3]) :  60;
+			
+			TCPServer tcpServer = new TCPServer(directoryPath, corePoolSize, maximumPoolSize, keepAliveTime);
 			tcpServer.listen();
 		} catch (Exception e) {
 
