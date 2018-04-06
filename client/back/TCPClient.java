@@ -9,14 +9,15 @@ import javax.swing.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Properties;
 
 public class TCPClient 
 {
-	public static final int SERVER_PORT = 3210;
 	
 	public static final String GET_FILE = "GetFile";
 	public static final String FILE_LIST = "FileList";
 	public static final String CLOSE_SESSION = "CloseSession";
+	public static final String FINISHED = "Finished";
 	
 	public static final String SEPARADOR_COMANDOS = ";;;";
 	public static final String SEPARADOR_ARCHIVOS = ":::";
@@ -40,17 +41,29 @@ public class TCPClient
     
     public TCPClient() 
     {
+    	inicializarConexion();    	    
+	}
+    
+    public void inicializarConexion( )
+    {
     	try {
-    		 
-			 canal = new Socket( "localhost", SERVER_PORT );
+    		 String archivoPropiedades = "./data/clientFiles/client.properties";
+    		 FileInputStream fis = new FileInputStream( archivoPropiedades );
+    	     Properties config = new Properties( );
+    	     config.load( fis );
+    	     fis.close( );
+    	     
+    	     
+			 canal = new Socket( config.getProperty( "servidor.dirIp" ) , Integer.parseInt(config.getProperty( "servidor.puerto" )) );
 			 out = new PrintWriter( canal.getOutputStream( ), true );
 	         in = new BufferedReader( new InputStreamReader( canal.getInputStream( ) ) );
 	         inFromServer = canal.getInputStream();
 		} 
     	catch (IOException e) {
 			System.out.println("Problemas al conectarse con el servidor: " + e.getMessage());
-		}    
-	}
+		}
+    	
+    }
     
     public ArrayList<String> pedirListaArchivos( ) throws IOException
     {
@@ -79,36 +92,39 @@ public class TCPClient
     	String msj = GET_FILE + SEPARADOR_COMANDOS + nombre;
     	out.println(msj);
     	
-    	boolean complete = true;
-    	int c;
-    	int i = 0;
-    	int size = 9022386;
+    	int size = 16384;
     	byte[] data = new byte[size];
     	
     	try {
     		File f = new File("./data/clientFiles", nombre);
     		FileOutputStream fileOut = new FileOutputStream(f);
-    		DataOutputStream dataOut = new DataOutputStream(fileOut);
-    		int tot = 0;
-    		//empty file case
-    		while (complete) {
-    			c = inFromServer.read(data, 0, data.length);
-    			tot += c;
-    			System.out.println("Tamanio paquete " + i + ":" + c);
-    			System.out.println("Paquete " + i + " " +data.toString());
-    			if (tot >= data.length) {
-    				complete = false;
-    				System.out.println("Completed");			
-
-    			} else {
-    				dataOut.write(data, 0, c);
-    				dataOut.flush();
-    			}    			
-    			i++;
-    		}
-  		
+    	
+    		int paquete = 0;
+    		boolean completado = false;
+    		byte[] end = FINISHED.getBytes();
+    		
+    		long t1 = System.currentTimeMillis();
+    		int i = this.inFromServer.read(data);
+    		while(i > 0)
+    		{
+    			fileOut.write(data, 0, i);
+    			paquete++;
+    			System.out.println("Paquete numero " + paquete + " de tamanio " + i + " bytes");    			
+    			i = this.inFromServer.read(data);    		
+    		}    		
+    		long t2 = System.currentTimeMillis();
+			long t = t2-t1;
+			System.out.println("[Cliente] Download finished!");
+			System.out.println("Time: " + t*0.001 + " segundos");   	
+    		
     		fileOut.close();
     		
+    		out.close();
+			in.close();
+			inFromServer.close();
+	    	canal.close();
+	    	
+	    	inicializarConexion();
     	}
     	catch(Exception e)
     	{    		

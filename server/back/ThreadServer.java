@@ -23,6 +23,7 @@ class ThreadServer implements Runnable {
 	public static final String GET_FILE = "GetFile";
 	public static final String FILE_LIST = "FileList";
 	public static final String CLOSE_SESSION = "CloseSession";
+	public static final String FINISHED = "Finished";
 
 	public static final String SEPARADOR_COMANDOS = ";;;";
 	public static final String SEPARADOR_ARCHIVOS = ":::";
@@ -78,8 +79,10 @@ class ThreadServer implements Runnable {
 		this.bufferedReader = new BufferedReader(new InputStreamReader(this.connectionSocket.getInputStream()));
 
 		this.printWriter = new PrintWriter(this.connectionSocket.getOutputStream(), true);
-
+		
 		this.outputStream = connectionSocket.getOutputStream();
+
+		
 	}
 
 	public void listDirectoryFiles() {
@@ -126,16 +129,22 @@ class ThreadServer implements Runnable {
 
 			System.out.println("[Thread Server] uploading : " + fileToUpload.getName() + " - Size: "
 					+ formatter.format(size) + " MB");
-
-			BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
-			bufferedInputStream.read(byteArray, 0, byteArray.length);
-
-			this.outputStream.write(byteArray, 0, byteArray.length);
-			this.outputStream.flush();
-
-			bufferedInputStream.close();
+		
+			long t1 = System.currentTimeMillis();
+			int i = fileInputStream.read(byteArray, 0, 8000);
+			while(i > 0)
+			{
+				this.outputStream.write(byteArray, 0, i);
+				i = fileInputStream.read(byteArray, 0, 8000);
+			}
 			
+			long t2 = System.currentTimeMillis();
+			long t = t2-t1;
 			System.out.println("[Thread Server] Finished!");
+			System.out.println("Time: " + t*0.001 + " segundos");
+			
+			this.outputStream.close();		
+			fileInputStream.close();
 		} 
 		else {
 			System.out.println("[Thread Server] File not found in directory!");
@@ -146,6 +155,7 @@ class ThreadServer implements Runnable {
 	public void run() {
 		try {
 			while (this.estado) {
+				
 				String[] comando = bufferedReader.readLine().split(SEPARADOR_COMANDOS);
 
 				if (comando[0].equals(FILE_LIST)) {
@@ -165,8 +175,7 @@ class ThreadServer implements Runnable {
 			}
 		} 
 		catch (Exception e) {
-			System.out.println("[Thread Server] Exception Caught during Thread Execution!");
-			e.printStackTrace();
+			
 		}
 		finally {
 			try {
